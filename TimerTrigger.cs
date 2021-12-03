@@ -162,7 +162,7 @@ namespace FootballDataMiner
                         var existingFixture = await GetFixtureByID(container, fixture.Id);
                         if (existingFixture != null)
                         {
-                            if (existingFixture.UtcDate != fixture.UtcDate)
+                            if (existingFixture.UtcDate != fixture.UtcDate || existingFixture.Status != fixture.Status)
                             {
                                 // Update the fixture, and notify subscribers of fixure change
                                 Console.WriteLine($"Updating fixture ID {fixture.Id} ({fixture.HomeTeam.Name} vs {fixture.AwayTeam.Name})");
