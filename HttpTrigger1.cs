@@ -38,8 +38,9 @@ namespace Company.Function
 
             var cosmosClient = new CosmosClient(_endpointURI, _primaryKey);
             var database = await CreateDatabaseAsync(cosmosClient, "Football");
-            var lastUpdatedContainer = await CreateContainerAsync(database, "LastRun", "/id");
-            _lastRunDate = await GetAndUpdateLastRunDate(lastUpdatedContainer);
+            //var lastUpdatedContainer = await CreateContainerAsync(database, "LastRun", "/id");
+            //_lastRunDate = await GetAndUpdateLastRunDate(lastUpdatedContainer);
+            _lastRunDate = DateTime.Now.AddDays(-1);
 
             IEnumerable<Team> teams = null;
             Console.WriteLine($"Last run date: {_lastRunDate:dd/MM/yyyy}");
@@ -164,11 +165,15 @@ namespace Company.Function
 
                 foreach (var fixture in fixtures.Matches)
                 {
-                    var homeTeam = teams.Where(t => t.Id == fixture.HomeTeam.Id).FirstOrDefault();
-                    var awayTeam = teams.Where(t => t.Id == fixture.AwayTeam.Id).FirstOrDefault();
+                    try
+                    {
+                        var homeTeam = teams.Where(t => t.Id == fixture.HomeTeam.Id).FirstOrDefault();
+                        var awayTeam = teams.Where(t => t.Id == fixture.AwayTeam.Id).FirstOrDefault();
 
-                    fixture.HomeTeam.CrestUrl = homeTeam.CrestUrl ?? "";
-                    fixture.AwayTeam.CrestUrl = awayTeam.CrestUrl ?? "";
+                        fixture.HomeTeam.CrestUrl = homeTeam.CrestUrl ?? "";
+                        fixture.AwayTeam.CrestUrl = awayTeam.CrestUrl ?? "";
+                    }
+                    catch{}
 
                     if (fixture.LastUpdated > _lastRunDate)
                     {

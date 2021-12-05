@@ -32,11 +32,10 @@ namespace FootballDataMiner
 
             var cosmosClient = new CosmosClient(_endpointURI, _primaryKey);
             var database = await CreateDatabaseAsync(cosmosClient, "Football");
-            var lastUpdatedContainer = await CreateContainerAsync(database, "LastRun", "/id");
-            _lastRunDate = await GetAndUpdateLastRunDate(lastUpdatedContainer);
+            //var lastUpdatedContainer = await CreateContainerAsync(database, "LastRun", "/id");
+            //_lastRunDate = await GetAndUpdateLastRunDate(lastUpdatedContainer);
+            _lastRunDate = DateTime.Now.AddDays(-1);
 
-            // For testing only
-            _lastRunDate = DateTime.MinValue;
             IEnumerable<Team> teams = null;
             Console.WriteLine($"Last run date: {_lastRunDate:dd/MM/yyyy}");
             var teamsContainer = await CreateContainerAsync(database, "Teams", "/id");
@@ -128,7 +127,7 @@ namespace FootballDataMiner
             return responseStr;
         }
 
-        private static async Task<List<Team>>PopulateTeams(Container container)
+        private static async Task<List<Team>> PopulateTeams(Container container)
         {
             var success = true;
             List<Team> teamsList = new List<Team>();
@@ -159,11 +158,16 @@ namespace FootballDataMiner
 
                 foreach (var fixture in fixtures.Matches)
                 {
-                    var homeTeam = teams.Where(t => t.Id == fixture.HomeTeam.Id).FirstOrDefault();
-                    var awayTeam = teams.Where(t => t.Id == fixture.AwayTeam.Id).FirstOrDefault();
+                    try
+                    {
+                        var homeTeam = teams.Where(t => t.Id == fixture.HomeTeam.Id).FirstOrDefault();
+                        var awayTeam = teams.Where(t => t.Id == fixture.AwayTeam.Id).FirstOrDefault();
 
-                    fixture.HomeTeam.CrestUrl = homeTeam.CrestUrl ?? "";
-                    fixture.AwayTeam.CrestUrl = awayTeam.CrestUrl ?? "";
+                        fixture.HomeTeam.CrestUrl = homeTeam.CrestUrl ?? "";
+                        fixture.AwayTeam.CrestUrl = awayTeam.CrestUrl ?? "";
+                    }
+                    catch { }
+
 
                     if (fixture.LastUpdated > _lastRunDate)
                     {
@@ -201,6 +205,6 @@ namespace FootballDataMiner
             {
                 return null;
             }
-        }        
+        }
     }
 }
