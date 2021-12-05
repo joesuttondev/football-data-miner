@@ -41,22 +41,20 @@ namespace Company.Function
             var lastUpdatedContainer = await CreateContainerAsync(database, "LastRun", "/id");
             _lastRunDate = await GetAndUpdateLastRunDate(lastUpdatedContainer);
 
-            // For testing only
-            _lastRunDate = DateTime.MinValue;
-
+            IEnumerable<Team> teams = null;
             Console.WriteLine($"Last run date: {_lastRunDate:dd/MM/yyyy}");
             var teamsContainer = await CreateContainerAsync(database, "Teams", "/id");
             if (await CountContainerItems(teamsContainer) == 0)
             {
                 Console.WriteLine("No teams in container. Populating now...");
-                await PopulateTeams(teamsContainer);
+                teams = await PopulateTeams(teamsContainer);
             }
             var fixturesContainer = await CreateContainerAsync(database, "Fixtures", "/id");
-            await UpdateFixtures(fixturesContainer);
+            await UpdateFixtures(fixturesContainer, teams);
             return new OkObjectResult("Finished");
         }
 
-      private static async Task<Database> CreateDatabaseAsync(CosmosClient client, string databaseID)
+        private static async Task<Database> CreateDatabaseAsync(CosmosClient client, string databaseID)
         {
             // Create a new database
             Database database = await client.CreateDatabaseIfNotExistsAsync(databaseID);
@@ -135,7 +133,7 @@ namespace Company.Function
             return responseStr;
         }
 
-        private static async Task<List<Team>>PopulateTeams(Container container)
+        private static async Task<List<Team>> PopulateTeams(Container container)
         {
             var success = true;
             List<Team> teamsList = new List<Team>();
@@ -208,6 +206,6 @@ namespace Company.Function
             {
                 return null;
             }
-        }        
+        }
     }
 }
