@@ -13,6 +13,7 @@ using System.Net;
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 using FootballDataMiner;
+using System.Linq;
 
 namespace Company.Function
 {
