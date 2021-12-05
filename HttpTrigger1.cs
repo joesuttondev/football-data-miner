@@ -55,7 +55,7 @@ namespace Company.Function
             return new OkObjectResult("Finished");
         }
 
-        private static async Task<Database> CreateDatabaseAsync(CosmosClient client, string databaseID)
+      private static async Task<Database> CreateDatabaseAsync(CosmosClient client, string databaseID)
         {
             // Create a new database
             Database database = await client.CreateDatabaseIfNotExistsAsync(databaseID);
@@ -134,9 +134,10 @@ namespace Company.Function
             return responseStr;
         }
 
-        private static async Task<bool> PopulateTeams(Container container)
+        private static async Task<List<Team>>PopulateTeams(Container container)
         {
             var success = true;
+            List<Team> teamsList = new List<Team>();
 
             var teamsStr = await MakeRequest($"competitions/PL/teams");
             if (!string.IsNullOrEmpty(teamsStr))
@@ -146,13 +147,14 @@ namespace Company.Function
 
                 foreach (var team in teams.Teams)
                 {
+                    teamsList.Add(team);
                     ItemResponse<Team> teamResponse = await container.CreateItemAsync<Team>(team, new PartitionKey(team.Id));
                 }
             }
-            return success;
+            return teamsList;
         }
 
-        private static async Task<bool> UpdateFixtures(Container container)
+        private static async Task<bool> UpdateFixtures(Container container, IEnumerable<Team> teams)
         {
             var success = true;
 
@@ -163,6 +165,12 @@ namespace Company.Function
 
                 foreach (var fixture in fixtures.Matches)
                 {
+                    var homeTeam = teams.Where(t => t.Id == fixture.HomeTeam.Id).FirstOrDefault();
+                    var awayTeam = teams.Where(t => t.Id == fixture.AwayTeam.Id).FirstOrDefault();
+
+                    fixture.HomeTeam.CrestUrl = homeTeam.CrestUrl ?? "";
+                    fixture.AwayTeam.CrestUrl = awayTeam.CrestUrl ?? "";
+
                     if (fixture.LastUpdated > _lastRunDate)
                     {
                         // Check if the utcDate field has changed
@@ -179,7 +187,7 @@ namespace Company.Function
                         else
                         {
                             Console.WriteLine($"Adding fixture ID {fixture.Id} ({fixture.HomeTeam.Name} vs {fixture.AwayTeam.Name})");
-                            ItemResponse<Match> teamResponse = await container.CreateItemAsync<Match>(fixture, new PartitionKey(fixture.Id));
+                            ItemResponse<Match> fixtureResponse = await container.CreateItemAsync<Match>(fixture, new PartitionKey(fixture.Id));
                         }
                     }
                 }
@@ -199,6 +207,6 @@ namespace Company.Function
             {
                 return null;
             }
-        }
+        }        
     }
 }

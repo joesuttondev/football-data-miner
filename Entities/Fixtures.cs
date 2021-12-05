@@ -59,10 +59,10 @@ namespace FootballDataMiner
         public Score Score { get; set; }
 
         [JsonProperty("homeTeam")]
-        public Area HomeTeam { get; set; }
+        public Team HomeTeam { get; set; }
 
         [JsonProperty("awayTeam")]
-        public Area AwayTeam { get; set; }
+        public Team AwayTeam { get; set; }
 
         [JsonProperty("referees")]
         public List<Referee> Referees { get; set; }

@@ -9,6 +9,7 @@ using System.Net;
 using Microsoft.Azure.Cosmos;
 using System.IO;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace FootballDataMiner
 {
@@ -36,16 +37,16 @@ namespace FootballDataMiner
 
             // For testing only
             _lastRunDate = DateTime.MinValue;
-
+            IEnumerable<Team> teams = null;
             Console.WriteLine($"Last run date: {_lastRunDate:dd/MM/yyyy}");
             var teamsContainer = await CreateContainerAsync(database, "Teams", "/id");
             if (await CountContainerItems(teamsContainer) == 0)
             {
                 Console.WriteLine("No teams in container. Populating now...");
-                await PopulateTeams(teamsContainer);
+                teams = await PopulateTeams(teamsContainer);
             }
             var fixturesContainer = await CreateContainerAsync(database, "Fixtures", "/id");
-            await UpdateFixtures(fixturesContainer);
+            await UpdateFixtures(fixturesContainer, teams);
         }
 
         private static async Task<Database> CreateDatabaseAsync(CosmosClient client, string databaseID)
@@ -127,9 +128,10 @@ namespace FootballDataMiner
             return responseStr;
         }
 
-        private static async Task<bool> PopulateTeams(Container container)
+        private static async Task<List<Team>>PopulateTeams(Container container)
         {
             var success = true;
+            List<Team> teamsList = new List<Team>();
 
             var teamsStr = await MakeRequest($"competitions/PL/teams");
             if (!string.IsNullOrEmpty(teamsStr))
@@ -139,13 +141,14 @@ namespace FootballDataMiner
 
                 foreach (var team in teams.Teams)
                 {
+                    teamsList.Add(team);
                     ItemResponse<Team> teamResponse = await container.CreateItemAsync<Team>(team, new PartitionKey(team.Id));
                 }
             }
-            return success;
+            return teamsList;
         }
 
-        private static async Task<bool> UpdateFixtures(Container container)
+        private static async Task<bool> UpdateFixtures(Container container, IEnumerable<Team> teams)
         {
             var success = true;
 
@@ -156,6 +159,12 @@ namespace FootballDataMiner
 
                 foreach (var fixture in fixtures.Matches)
                 {
+                    var homeTeam = teams.Where(t => t.Id == fixture.HomeTeam.Id).FirstOrDefault();
+                    var awayTeam = teams.Where(t => t.Id == fixture.AwayTeam.Id).FirstOrDefault();
+
+                    fixture.HomeTeam.CrestUrl = homeTeam.CrestUrl ?? "";
+                    fixture.AwayTeam.CrestUrl = awayTeam.CrestUrl ?? "";
+
                     if (fixture.LastUpdated > _lastRunDate)
                     {
                         // Check if the utcDate field has changed
@@ -172,7 +181,7 @@ namespace FootballDataMiner
                         else
                         {
                             Console.WriteLine($"Adding fixture ID {fixture.Id} ({fixture.HomeTeam.Name} vs {fixture.AwayTeam.Name})");
-                            ItemResponse<Match> teamResponse = await container.CreateItemAsync<Match>(fixture, new PartitionKey(fixture.Id));
+                            ItemResponse<Match> fixtureResponse = await container.CreateItemAsync<Match>(fixture, new PartitionKey(fixture.Id));
                         }
                     }
                 }
@@ -192,6 +201,6 @@ namespace FootballDataMiner
             {
                 return null;
             }
-        }
+        }        
     }
 }
